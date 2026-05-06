@@ -135,22 +135,52 @@
 
 ## 5. システム構成
 
+chapter6（arxiv-researcher）の **Chain / Agent / Service 3層構造** を採用する。
+
 ```
-ai-tips-agent/
-├── collector/
-│   ├── blog_scraper.py       # 公式ブログ・テックブログ収集
-│   ├── github_fetcher.py     # GitHub Releases API
-│   └── twitter_scraper.py    # X スクレイピング（Playwright）
-├── processor/
-│   └── summarizer.py         # Claude API で要約・整形
-├── publisher/
+ai-tips-collector/
+├── agent/
+│   ├── collect_agent.py      # 収集〜評価〜レポート生成のLangGraphグラフ
+│   └── qa_agent.py           # Q&A LangGraphグラフ
+├── chains/
+│   ├── blog_chain.py         # RSSフィード・HTMLスクレイピング
+│   ├── github_chain.py       # GitHub Releases API取得
+│   ├── twitter_chain.py      # Playwright経由のX取得
+│   ├── filter_chain.py       # 実践的Tips関連度フィルタリング（LLM評価）
+│   ├── summarizer_chain.py   # 個別記事の日本語要約
+│   ├── reporter_chain.py     # 最終レポート統合生成
+│   └── prompts/              # .promptファイル（LLMへの指示を外部化）
+│       ├── filter.prompt
+│       ├── summarize.prompt
+│       └── reporter_system.prompt
+├── models/
+│   ├── article.py            # 収集記事のPydanticモデル
+│   └── report.py             # レポートのPydanticモデル
+├── service/
 │   ├── obsidian_writer.py    # Markdownファイル書き出し
 │   └── gmail_sender.py       # Gmail API メール送信
-├── qa.py                     # Q&A CLIツール
-├── config.yaml               # ソース・アカウントリスト設定
-├── Dockerfile
-├── requirements.txt
-└── main.py                   # エントリーポイント（F01〜F04統合）
+├── settings.py               # pydantic-settings による設定管理
+├── config.yaml               # ソース・アカウントリスト（後から編集可能）
+├── qa.py                     # Q&A CLIエントリーポイント
+├── main.py                   # 定期実行エントリーポイント
+├── pyproject.toml            # uv によるパッケージ管理
+└── Dockerfile
+```
+
+### LangGraph エージェントフロー（collect_agent）
+
+```
+[blog_chain / github_chain / twitter_chain]
+        ↓ 並列収集
+[filter_chain]  ← 実践Tipsとして関連性をLLMで評価
+        ↓
+[summarizer_chain]  ← 個別記事を日本語要約
+        ↓
+[task_evaluator]  ← 「十分な情報が集まったか」を評価
+        ↓（不足なら追加収集ループ、最大3回）
+[reporter_chain]  ← 最終レポート生成
+        ↓
+[obsidian_writer / gmail_sender]
 ```
 
 ---
@@ -170,16 +200,20 @@ ai-tips-agent/
 
 ## 7. 使用技術・ライブラリ
 
-| 用途 | 技術 |
-|------|------|
-| LLM | Anthropic SDK（`claude-sonnet-4-6`） |
-| Webスクレイピング | Playwright（MCP経由 または `playwright` ライブラリ直接） |
-| GitHub API | `PyGithub` または `httpx` |
-| メール送信 | `google-auth` + `googleapiclient` |
-| RSS取得 | `feedparser` |
-| テンプレート | `jinja2`（Markdownテンプレート） |
-| 設定管理 | `pyyaml` |
-| ドキュメント検索 | context7 MCP |
+| 用途 | 技術 | chapter6との対応 |
+|------|------|----------------|
+| エージェントオーケストレーション | **LangGraph** | `StateGraph` ベースのフロー管理 |
+| LLMチェーン | **LangChain + langchain-anthropic** | `ChatAnthropic` + `ChatPromptTemplate` |
+| LLMモデル | `claude-sonnet-4-6`（要約・評価・レポート） | chapter6の `reporter_llm` パターン |
+| 設定管理 | **pydantic-settings** + `.env` | chapter6の `settings.py` をそのまま踏襲 |
+| パッケージ管理 | **uv** + `pyproject.toml` | chapter6と同じ |
+| RSS取得 | `feedparser` | chapter6 deps にすでに存在 |
+| Webスクレイピング | `playwright`（ライブラリ直接利用） | X/動的サイト用 |
+| GitHub API | `httpx` | リリースノート取得 |
+| メール送信 | `google-auth` + `googleapiclient` | Gmail API OAuth2 |
+| データモデル | `pydantic` | chapter6の `ReadingResult` と同パターン |
+| リトライ制御 | `tenacity` | chapter6 deps にすでに存在 |
+| ドキュメント検索（Q&A） | context7 MCP | Q&A機能での公式ドキュメント参照 |
 
 ---
 
