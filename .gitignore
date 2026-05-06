@@ -1,0 +1,18 @@
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+*.env
+
+# Secrets
+secrets/
+*.json.key
+
+# OS
+.DS_Store
