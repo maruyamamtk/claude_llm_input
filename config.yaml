@@ -28,6 +28,9 @@ rss_sources:
   - name: note AI
     url: https://note.com/hashtag/AI
     type: html
+  - name: Classmethod Developer Blog
+    url: https://dev.classmethod.jp/
+    type: html
 
 github_repos:
   - repo: anthropics/anthropic-sdk-python
@@ -42,10 +45,16 @@ github_repos:
     description: LLMラッパー動向
 
 twitter_accounts:
-  - handle: anthropic
+  - handle: AnthropicAI
     description: Anthropic公式
   - handle: alexalbert__
     description: Claude Code開発リード
+  - handle: claudeai
+    description: Claude AI公式
+  - handle: ClaudeDevs
+    description: Claude開発者向け公式
+  - handle: claudecode_lab
+    description: Claude Code Lab
   - handle: OpenAI
     description: OpenAI公式
   - handle: sama
@@ -60,3 +69,20 @@ twitter_accounts:
     description: Ethan Mollick（AI活用研究）
   - handle: mattshumer_
     description: Matt Shumer（AI実践家）
+  - handle: mizchi
+    description: mizchi（フロントエンド・AIコーディング）
+  - handle: ComagerTon79278
+    description: AIコーディング実践者
+  - handle: oikon48
+    description: AIコーディング実践者
+  - handle: masaru_growth
+    description: AI活用・グロース実践者
+  - handle: srishticodes
+    description: AIコーディング実践者
+  - handle: A7_data
+    description: AIデータ活用実践者
+
+# X収集時の動作設定
+twitter_settings:
+  follow_links: true        # ポスト内リンクの記事も収集する
+  max_linked_articles: 3    # 1ポストあたりの最大リンク収集数

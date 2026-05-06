@@ -48,13 +48,17 @@
 | Latent Space | https://www.latent.space/ |
 | Zenn（AIタグ） | https://zenn.dev/topics/ai |
 | note（AIタグ） | https://note.com/hashtag/AI |
+| Classmethod Developer Blog | https://dev.classmethod.jp/ |
 
 ### 2-4. X（Twitter）アカウント — Playwright スクレイピング
 
 | アカウント | 属性 |
 |-----------|------|
-| @anthropic | Anthropic公式 |
+| @AnthropicAI | Anthropic公式 |
 | @alexalbert__ | Claude Code開発リード |
+| @claudeai | Claude AI公式 |
+| @ClaudeDevs | Claude開発者向け公式 |
+| @claudecode_lab | Claude Code Lab |
 | @OpenAI | OpenAI公式 |
 | @sama | Sam Altman（OpenAI CEO） |
 | @karpathy | Andrej Karpathy（AI研究者） |
@@ -62,8 +66,23 @@
 | @swyx | shawn（AI Engineer Weekly） |
 | @emollick | Ethan Mollick（AI活用研究） |
 | @mattshumer_ | Matt Shumer（AI実践家） |
+| @mizchi | mizchi（フロントエンド・AIコーディング） |
+| @ComagerTon79278 | AIコーディング実践者 |
+| @oikon48 | AIコーディング実践者 |
+| @masaru_growth | AI活用・グロース実践者 |
+| @srishticodes | AIコーディング実践者 |
+| @A7_data | AIデータ活用実践者 |
 
 > 初期リストとして設定。後から `config.yaml` を編集して追加・削除可能。
+
+### 2-5. X ポスト内リンクの追跡収集
+
+X（Twitter）のポストに URL が含まれる場合、そのリンク先の記事本文も収集対象とする。
+
+- **対象**: ポスト本文中のすべての外部 URL（t.co 短縮 URL を展開して取得）
+- **動作**: Playwright でリンク先ページをスクレイピングし、`raw_content` として記事モデルに格納
+- **上限**: 1ポストあたり最大 3 件のリンクを追跡（`config.yaml` の `twitter_settings.max_linked_articles` で変更可能）
+- **スキップ条件**: すでに別ソースで収集済みの URL は重複排除して skip する
 
 ---
 
@@ -145,7 +164,7 @@ ai-tips-collector/
 ├── chains/
 │   ├── blog_chain.py         # RSSフィード・HTMLスクレイピング
 │   ├── github_chain.py       # GitHub Releases API取得
-│   ├── twitter_chain.py      # Playwright経由のX取得
+│   ├── twitter_chain.py      # Playwright経由のX取得（ポスト内リンク先記事も収集）
 │   ├── filter_chain.py       # 実践的Tips関連度フィルタリング（LLM評価）
 │   ├── summarizer_chain.py   # 個別記事の日本語要約
 │   ├── reporter_chain.py     # 最終レポート統合生成
