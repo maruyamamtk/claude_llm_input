@@ -5,12 +5,16 @@ from html.parser import HTMLParser
 from typing import Literal, Optional
 from urllib.parse import urljoin, urlparse
 
+import logging
+
 import feedparser
 import httpx
 import yaml
 
 from models.article import Article
 from settings import settings
+
+logger = logging.getLogger(__name__)
 
 _CATEGORY_MAP: dict[str, Literal["anthropic", "openai", "github", "blog", "twitter", "other"]] = {
     "anthropic news": "anthropic",
@@ -150,7 +154,7 @@ class BlogChain:
                 response = client.get(url)
                 response.raise_for_status()
         except Exception as exc:
-            print(f"[BlogChain] HTML fetch failed for {name}: {exc}")
+            logger.warning("[BlogChain] HTML fetch failed for %s: %s", name, exc)
             return []
 
         parser = _HtmlParser(url)

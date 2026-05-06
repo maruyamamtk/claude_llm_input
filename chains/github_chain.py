@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -8,6 +9,8 @@ import yaml
 
 from models.article import Article
 from settings import settings
+
+logger = logging.getLogger(__name__)
 
 
 class GithubChain:
@@ -48,14 +51,19 @@ class GithubChain:
             response.raise_for_status()
             releases: list[dict] = response.json()
         except Exception as exc:
-            print(f"[GithubChain] API error for {repo_name}: {exc}")
+            logger.warning("[GithubChain] API error for %s: %s", repo_name, exc)
             return []
 
         articles: list[Article] = []
         for release in releases:
+            # Skip draft releases (published_at is None for drafts)
+            if release.get("draft"):
+                continue
+
             published_at = self._parse_datetime(release.get("published_at"))
-            # GitHub returns releases sorted newest first; stop when older than cutoff
-            if published_at is not None and published_at < cutoff:
+            # Releases without a publish date or older than cutoff are excluded.
+            # GitHub returns releases sorted newest first, so stop on the first old one.
+            if published_at is None or published_at < cutoff:
                 break
 
             tag = release.get("tag_name", "")

@@ -1,7 +1,6 @@
 """github_chain.py のユニットテスト（外部HTTP通信をモック）"""
 from __future__ import annotations
 
-import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
@@ -165,6 +164,45 @@ class TestFetchReleases:
         articles = chain._fetch_releases(client, repo, cutoff)
 
         assert articles == []
+
+    def test_skips_draft_releases(self):
+        chain = _make_chain()
+        draft_release = {
+            "name": "v2.0.0-draft",
+            "tag_name": "v2.0.0-draft",
+            "html_url": "https://github.com/test/repo/releases/tag/v2.0.0-draft",
+            "body": "",
+            "published_at": None,
+            "draft": True,
+        }
+        recent_release = _make_release(name="v1.0.0", published_at=_ago_iso(1))
+        client = self._mock_client([draft_release, recent_release])
+        repo = {"repo": "test/repo", "description": "Test"}
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
+
+        articles = chain._fetch_releases(client, repo, cutoff)
+
+        # draft はスキップされ、recent_release のみ収集される
+        assert len(articles) == 1
+        assert "v1.0.0" in articles[0].title
+
+    def test_excludes_release_with_no_published_at(self):
+        chain = _make_chain()
+        release = {
+            "name": "v1.0.0",
+            "tag_name": "v1.0.0",
+            "html_url": "https://github.com/test/repo/releases/tag/v1.0.0",
+            "body": "",
+            "published_at": None,
+            "draft": False,
+        }
+        client = self._mock_client([release])
+        repo = {"repo": "test/repo", "description": "Test"}
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
+
+        articles = chain._fetch_releases(client, repo, cutoff)
+
+        assert len(articles) == 0
 
     def test_uses_tag_name_when_name_is_none(self):
         chain = _make_chain()
