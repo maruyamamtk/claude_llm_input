@@ -1,0 +1,62 @@
+# AI Tips Collector — 情報ソース設定
+# このファイルを編集することで収集対象を追加・削除できます
+
+blog_sources:
+  - name: Anthropic News
+    url: https://www.anthropic.com/news
+    type: html
+  - name: OpenAI News
+    url: https://openai.com/news/
+    type: html
+  - name: Google DeepMind Blog
+    url: https://deepmind.google/discover/blog/
+    type: html
+  - name: DeepLearning.AI The Batch
+    url: https://www.deeplearning.ai/the-batch/
+    type: html
+
+rss_sources:
+  - name: Simon Willison's Weblog
+    url: https://simonwillison.net/
+    type: rss
+  - name: Latent Space
+    url: https://www.latent.space/
+    type: rss
+  - name: Zenn AI
+    url: https://zenn.dev/topics/ai
+    type: html
+  - name: note AI
+    url: https://note.com/hashtag/AI
+    type: html
+
+github_repos:
+  - repo: anthropics/anthropic-sdk-python
+    description: Anthropic SDK更新
+  - repo: anthropics/claude-code
+    description: Claude Code更新
+  - repo: openai/openai-python
+    description: OpenAI SDK更新
+  - repo: openai/openai-cookbook
+    description: OpenAI実践レシピ
+  - repo: BerriAI/litellm
+    description: LLMラッパー動向
+
+twitter_accounts:
+  - handle: anthropic
+    description: Anthropic公式
+  - handle: alexalbert__
+    description: Claude Code開発リード
+  - handle: OpenAI
+    description: OpenAI公式
+  - handle: sama
+    description: Sam Altman（OpenAI CEO）
+  - handle: karpathy
+    description: Andrej Karpathy（AI研究者）
+  - handle: simonw
+    description: Simon Willison（OSS開発者）
+  - handle: swyx
+    description: shawn（AI Engineer Weekly）
+  - handle: emollick
+    description: Ethan Mollick（AI活用研究）
+  - handle: mattshumer_
+    description: Matt Shumer（AI実践家）
