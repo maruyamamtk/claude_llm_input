@@ -1,17 +1,11 @@
-# Issue #3 実装計画（LLM処理チェーン）
+# Issue #6 実装計画（main.py エントリーポイント）
 
 ## タスク一覧
 
-- [ ] ブランチ作成: `feature/issue-3-llm-chains`
-- [ ] `chains/prompts/filter.prompt` 作成
-- [ ] `chains/prompts/summarize.prompt` 作成
-- [ ] `chains/prompts/reporter_system.prompt` 作成
-- [ ] `chains/filter_chain.py` 実装
-- [ ] `chains/summarizer_chain.py` 実装
-- [ ] `chains/reporter_chain.py` 実装
-- [ ] `tests/test_filter_chain.py` 作成
-- [ ] `tests/test_summarizer_chain.py` 作成
-- [ ] `tests/test_reporter_chain.py` 作成
+- [x] mainブランチ最新化・ブランチ作成: `feature/main-entrypoint-issue6`
+- [ ] `collect_agent.py` の `_publish_node` に統計ログ追加
+- [ ] `main.py` 作成（CollectAgent呼び出し・ObsidianWriter保存・例外処理）
+- [ ] `tests/test_main.py` 作成（モックによるユニットテスト）
 - [ ] テスト通過確認
 - [ ] コミット・PR作成
 - [ ] PRレビュー・マージ
