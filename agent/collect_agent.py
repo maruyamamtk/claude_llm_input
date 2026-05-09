@@ -212,6 +212,13 @@ class CollectAgent:
         return {"final_report": final_report}
 
     def _publish_node(self, state: CollectAgentState) -> dict:
-        # Stub: will connect to obsidian_writer (#5) and gmail_sender (#7)
-        logger.info("[CollectAgent] publish stub — pending #5/#7")
+        collected = len(state.get("raw_articles", []))
+        filtered = len(state.get("articles", []))
+        retries = state.get("retry_count", 0)
+        logger.info(
+            "[CollectAgent] 収集件数: %d | フィルタ通過件数: %d | リトライ回数: %d",
+            collected,
+            filtered,
+            retries,
+        )
         return {}
