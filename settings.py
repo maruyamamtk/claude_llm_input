@@ -1,5 +1,47 @@
+from __future__ import annotations
+
+import logging
+import os
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+
+def _bootstrap_from_secret_manager() -> None:
+    """Cloud Run環境でSecret Managerからシークレットを環境変数に事前ロードする。
+
+    GCP_PROJECT_IDが設定されている場合のみ実行される。
+    """
+    project_id = os.environ.get("GCP_PROJECT_ID")
+    if not project_id:
+        return
+
+    try:
+        from google.cloud import secretmanager  # type: ignore[import-untyped]
+    except ImportError:
+        logger.warning("google-cloud-secret-manager がインストールされていません。Secret Managerをスキップします。")
+        return
+
+    client = secretmanager.SecretManagerServiceClient()
+    secret_map = {
+        "anthropic-api-key": "ANTHROPIC_API_KEY",
+        "github-token": "GITHUB_TOKEN",
+    }
+    for secret_id, env_var in secret_map.items():
+        if env_var in os.environ:
+            continue
+        try:
+            name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+            os.environ[env_var] = response.payload.data.decode("utf-8")
+            logger.info("Secret Manager からロード完了: %s -> %s", secret_id, env_var)
+        except Exception as exc:
+            logger.error("Secret Manager からのロード失敗: %s (%s)", secret_id, exc)
+
+
+_bootstrap_from_secret_manager()
 
 
 class CollectorSettings(BaseSettings):
