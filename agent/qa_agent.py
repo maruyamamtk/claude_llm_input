@@ -18,7 +18,7 @@ _SYSTEM_PROMPT = """\
 
 回答は必ず以下のMarkdown形式で出力してください：
 
-**Q**: {question}
+**Q**: <ユーザーの質問をそのまま記載>
 **A**: 回答（300字以内で簡潔に）
 **参照**: [ドキュメントタイトルまたはURL](URL)
 
@@ -96,7 +96,7 @@ class QAAgent:
         context = state["context"]
 
         messages = [
-            SystemMessage(content=_SYSTEM_PROMPT.format(question=question)),
+            SystemMessage(content=_SYSTEM_PROMPT),
             HumanMessage(
                 content=_ANSWER_PROMPT.format(context=context, question=question)
             ),

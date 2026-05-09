@@ -4,9 +4,6 @@ from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-
 class TestQAAgent:
     def test_load_context_missing_dir(self, tmp_path):
         """存在しないディレクトリの場合はフォールバックメッセージを返す。"""
