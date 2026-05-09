@@ -14,6 +14,22 @@ from agent.collect_agent import (
 from models.article import Article
 
 
+def _make_twitter_article(
+    title: str = "AI最新ツイート",
+    url: str = "https://x.com/AnthropicAI/status/1",
+    summary: str = "ツイート要約",
+    is_related: bool = True,
+) -> Article:
+    return Article(
+        title=title,
+        url=url,
+        source="@AnthropicAI",
+        summary=summary,
+        is_related=is_related,
+        category="twitter",
+    )
+
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -39,6 +55,7 @@ def _make_agent() -> CollectAgent:
     with (
         patch("agent.collect_agent.BlogChain"),
         patch("agent.collect_agent.GithubChain"),
+        patch("agent.collect_agent.TwitterChain"),
         patch("agent.collect_agent.FilterChain"),
         patch("agent.collect_agent.SummarizerChain"),
         patch("agent.collect_agent.ReporterChain"),
@@ -48,6 +65,7 @@ def _make_agent() -> CollectAgent:
         agent = CollectAgent.__new__(CollectAgent)
         agent._blog_chain = MagicMock()
         agent._github_chain = MagicMock()
+        agent._twitter_chain = MagicMock()
         agent._filter_chain = MagicMock()
         agent._summarizer_chain = MagicMock()
         agent._reporter_chain = MagicMock()
@@ -113,6 +131,18 @@ class TestCollectNodes:
 
         assert "raw_articles" in result
         assert len(result["raw_articles"]) == 1
+
+    def test_collect_twitter_returns_raw_articles(self):
+        agent = _make_agent()
+        twitter_article = _make_twitter_article()
+        agent._twitter_chain.run.return_value = [twitter_article]
+
+        state = _make_state()
+        result = agent._collect_twitter_node(state)
+
+        assert "raw_articles" in result
+        assert len(result["raw_articles"]) == 1
+        assert result["raw_articles"][0].category == "twitter"
 
     def test_collect_blog_empty_result(self):
         agent = _make_agent()
@@ -333,10 +363,11 @@ class TestGraphInvocation:
 
         articles = [
             _make_article(title=f"Article {i}", url=f"https://example.com/{i}")
-            for i in range(5)
+            for i in range(6)
         ]
         agent._blog_chain.run.return_value = articles[:3]
-        agent._github_chain.run.return_value = articles[3:]
+        agent._github_chain.run.return_value = articles[3:5]
+        agent._twitter_chain.run.return_value = articles[5:]
 
         filtered = [a.model_copy(update={"is_related": True}) for a in articles]
         agent._filter_chain.run.return_value = filtered
@@ -391,6 +422,7 @@ class TestGraphInvocation:
         # Should be able to get the Mermaid graph representation
         mermaid = agent.graph.get_graph().draw_mermaid()
         assert "dispatch_collect" in mermaid
+        assert "collect_twitter" in mermaid
         assert "filter_and_summarize" in mermaid
         assert "evaluate" in mermaid
         assert "generate_report" in mermaid
