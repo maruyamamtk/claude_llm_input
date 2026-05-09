@@ -35,6 +35,8 @@ def _make_chain() -> TwitterChain:
     chain = TwitterChain.__new__(TwitterChain)
     chain.accounts = _MINIMAL_CONFIG["twitter_accounts"]
     chain.max_articles = 10
+    chain.follow_links = False
+    chain.max_linked_articles = 3
     return chain
 
 
@@ -340,3 +342,296 @@ class TestTwitterChainRun:
             results = chain.run()
 
         assert results[0].category == "twitter"
+
+    def test_run_calls_fetch_linked_articles_when_follow_links_true(self):
+        chain = _make_chain()
+        chain.accounts = [{"handle": "AnthropicAI", "description": "Anthropic公式"}]
+        chain.follow_links = True
+        chain.max_linked_articles = 3
+        tweet_article = Article(
+            title="Check this out https://t.co/abc",
+            url="https://x.com/AnthropicAI/status/1",
+            source="@AnthropicAI",
+            published_at=datetime.now(tz=timezone.utc) - timedelta(hours=1),
+            raw_content="Check this out https://t.co/abc",
+            category="twitter",
+        )
+        linked_article = Article(
+            title="Linked Page",
+            url="https://example.com/article",
+            source="@AnthropicAI",
+            published_at=datetime.now(tz=timezone.utc),
+            raw_content="Article body",
+            category="twitter",
+        )
+
+        with patch.object(chain, "_fetch_account", return_value=[tweet_article]), patch.object(
+            chain, "_fetch_linked_articles", return_value=[linked_article]
+        ) as mock_linked:
+            results = chain.run()
+
+        mock_linked.assert_called_once()
+        assert len(results) == 2
+        assert results[1].url == "https://example.com/article"
+
+    def test_run_skips_fetch_linked_articles_when_follow_links_false(self):
+        chain = _make_chain()
+        chain.accounts = [{"handle": "AnthropicAI", "description": "Anthropic公式"}]
+        chain.follow_links = False
+        tweet_article = Article(
+            title="Test",
+            url="https://x.com/AnthropicAI/status/1",
+            source="@AnthropicAI",
+            published_at=datetime.now(tz=timezone.utc) - timedelta(hours=1),
+            raw_content="https://t.co/abc",
+            category="twitter",
+        )
+
+        with patch.object(chain, "_fetch_account", return_value=[tweet_article]), patch.object(
+            chain, "_fetch_linked_articles"
+        ) as mock_linked:
+            results = chain.run()
+
+        mock_linked.assert_not_called()
+        assert len(results) == 1
+
+
+# ---------------------------------------------------------------------------
+# Tests: _extract_urls_from_text
+# ---------------------------------------------------------------------------
+
+
+class TestExtractUrlsFromText:
+    def test_extracts_tco_url(self):
+        chain = _make_chain()
+        text = "新しい記事をシェアします https://t.co/abc123XYZ"
+        urls = chain._extract_urls_from_text(text)
+        assert urls == ["https://t.co/abc123XYZ"]
+
+    def test_extracts_multiple_tco_urls(self):
+        chain = _make_chain()
+        text = "記事1: https://t.co/aaa 記事2: https://t.co/bbb"
+        urls = chain._extract_urls_from_text(text)
+        assert len(urls) == 2
+        assert "https://t.co/aaa" in urls
+        assert "https://t.co/bbb" in urls
+
+    def test_returns_empty_when_no_tco_url(self):
+        chain = _make_chain()
+        text = "特にリンクのないツイートです"
+        urls = chain._extract_urls_from_text(text)
+        assert urls == []
+
+    def test_ignores_non_tco_urls(self):
+        chain = _make_chain()
+        text = "Visit https://example.com for details"
+        urls = chain._extract_urls_from_text(text)
+        assert urls == []
+
+
+# ---------------------------------------------------------------------------
+# Tests: _expand_url
+# ---------------------------------------------------------------------------
+
+
+class TestExpandUrl:
+    def test_returns_expanded_url(self):
+        chain = _make_chain()
+        mock_resp = MagicMock()
+        mock_resp.url = "https://example.com/real-article"
+
+        with patch("httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = MagicMock(return_value=mock_client)
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.head.return_value = mock_resp
+            mock_client_cls.return_value = mock_client
+
+            result = chain._expand_url("https://t.co/abc123")
+
+        assert result == "https://example.com/real-article"
+
+    def test_returns_original_url_on_error(self):
+        chain = _make_chain()
+
+        with patch("httpx.Client") as mock_client_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = MagicMock(return_value=mock_client)
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.head.side_effect = Exception("timeout")
+            mock_client_cls.return_value = mock_client
+
+            result = chain._expand_url("https://t.co/abc123")
+
+        assert result == "https://t.co/abc123"
+
+
+# ---------------------------------------------------------------------------
+# Tests: _fetch_linked_articles
+# ---------------------------------------------------------------------------
+
+
+class TestFetchLinkedArticles:
+    def _make_chain_with_links(self) -> TwitterChain:
+        chain = _make_chain()
+        chain.follow_links = True
+        chain.max_linked_articles = 3
+        return chain
+
+    def test_returns_empty_when_no_tco_urls(self):
+        chain = self._make_chain_with_links()
+        tweet_article = Article(
+            title="No links here",
+            url="https://x.com/user/status/1",
+            source="@user",
+            published_at=datetime.now(tz=timezone.utc),
+            raw_content="リンクなしのツイートです",
+            category="twitter",
+        )
+        result = chain._fetch_linked_articles([tweet_article], set())
+        assert result == []
+
+    def test_deduplicates_already_seen_urls(self):
+        chain = self._make_chain_with_links()
+        tweet_article = Article(
+            title="Link tweet",
+            url="https://x.com/user/status/1",
+            source="@user",
+            published_at=datetime.now(tz=timezone.utc),
+            raw_content="Check https://t.co/abc123",
+            category="twitter",
+        )
+        seen_urls = {"https://example.com/already-seen"}
+
+        with patch.object(chain, "_expand_url", return_value="https://example.com/already-seen"):
+            result = chain._fetch_linked_articles([tweet_article], seen_urls)
+
+        assert result == []
+
+    def test_skips_x_com_links(self):
+        chain = self._make_chain_with_links()
+        tweet_article = Article(
+            title="RT",
+            url="https://x.com/user/status/1",
+            source="@user",
+            published_at=datetime.now(tz=timezone.utc),
+            raw_content="RT https://t.co/abc",
+            category="twitter",
+        )
+
+        with patch.object(chain, "_expand_url", return_value="https://x.com/other/status/999"):
+            result = chain._fetch_linked_articles([tweet_article], set())
+
+        assert result == []
+
+    def test_respects_max_linked_articles(self):
+        chain = self._make_chain_with_links()
+        chain.max_linked_articles = 2
+        tweet_article = Article(
+            title="Many links",
+            url="https://x.com/user/status/1",
+            source="@user",
+            published_at=datetime.now(tz=timezone.utc),
+            raw_content="https://t.co/a https://t.co/b https://t.co/c https://t.co/d",
+            category="twitter",
+        )
+
+        expand_map = {
+            "https://t.co/a": "https://site.com/1",
+            "https://t.co/b": "https://site.com/2",
+            "https://t.co/c": "https://site.com/3",
+            "https://t.co/d": "https://site.com/4",
+        }
+
+        def fake_scrape(context, url, source):
+            return Article(
+                title=f"Article {url}",
+                url=url,
+                source=source,
+                published_at=datetime.now(tz=timezone.utc),
+                raw_content="body",
+                category="twitter",
+            )
+
+        with patch.object(chain, "_expand_url", side_effect=lambda u: expand_map.get(u, u)), patch(
+            "chains.twitter_chain.sync_playwright"
+        ) as mock_pw, patch.object(chain, "_scrape_linked_page", side_effect=fake_scrape):
+            mock_pw.return_value.__enter__ = MagicMock(return_value=MagicMock())
+            mock_pw.return_value.__exit__ = MagicMock(return_value=False)
+            result = chain._fetch_linked_articles([tweet_article], set())
+
+        assert len(result) <= 2
+
+
+# ---------------------------------------------------------------------------
+# Tests: _scrape_linked_page
+# ---------------------------------------------------------------------------
+
+
+class TestScrapeLinkedPage:
+    def test_returns_article_on_success(self):
+        chain = _make_chain()
+
+        mock_page = MagicMock()
+        mock_page.title.return_value = "Great Article"
+        mock_body = MagicMock()
+        mock_body.inner_text.return_value = "Article content here"
+        mock_page.query_selector.return_value = mock_body
+
+        mock_context = MagicMock()
+        mock_context.new_page.return_value = mock_page
+
+        result = chain._scrape_linked_page(mock_context, "https://example.com/article", "@user")
+
+        assert result is not None
+        assert result.title == "Great Article"
+        assert result.url == "https://example.com/article"
+        assert result.source == "@user"
+        assert result.category == "twitter"
+        assert "Article content here" in result.raw_content
+
+    def test_returns_none_on_page_error(self):
+        chain = _make_chain()
+
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_page.goto.side_effect = Exception("Navigation failed")
+        mock_context.new_page.return_value = mock_page
+
+        result = chain._scrape_linked_page(mock_context, "https://example.com/bad", "@user")
+
+        assert result is None
+
+    def test_truncates_title_to_200_chars(self):
+        chain = _make_chain()
+
+        mock_page = MagicMock()
+        mock_page.title.return_value = "T" * 300
+        mock_body = MagicMock()
+        mock_body.inner_text.return_value = "body"
+        mock_page.query_selector.return_value = mock_body
+
+        mock_context = MagicMock()
+        mock_context.new_page.return_value = mock_page
+
+        result = chain._scrape_linked_page(mock_context, "https://example.com/", "@user")
+
+        assert result is not None
+        assert len(result.title) == 200
+
+    def test_truncates_raw_content_to_2000_chars(self):
+        chain = _make_chain()
+
+        mock_page = MagicMock()
+        mock_page.title.return_value = "Title"
+        mock_body = MagicMock()
+        mock_body.inner_text.return_value = "C" * 5000
+        mock_page.query_selector.return_value = mock_body
+
+        mock_context = MagicMock()
+        mock_context.new_page.return_value = mock_page
+
+        result = chain._scrape_linked_page(mock_context, "https://example.com/", "@user")
+
+        assert result is not None
+        assert len(result.raw_content) == 2000

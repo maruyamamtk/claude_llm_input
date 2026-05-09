@@ -309,3 +309,145 @@ class TestBlogChainRun:
         assert all(hasattr(a, "source") for a in results)
         assert all(hasattr(a, "published_at") for a in results)
         assert all(hasattr(a, "raw_content") for a in results)
+
+
+# ---------------------------------------------------------------------------
+# Tests: _fetch_playwright_source
+# ---------------------------------------------------------------------------
+
+
+def _make_link_mock(href: str, text: str) -> MagicMock:
+    el = MagicMock()
+    el.get_attribute.return_value = href
+    el.inner_text.return_value = text
+    return el
+
+
+class TestFetchPlaywrightSource:
+    def _chain(self) -> BlogChain:
+        chain = BlogChain.__new__(BlogChain)
+        chain.max_articles = 10
+        return chain
+
+    def _make_playwright_mock(self, links: list[MagicMock]) -> MagicMock:
+        mock_page = MagicMock()
+        mock_page.query_selector_all.return_value = links
+
+        mock_context = MagicMock()
+        mock_context.new_page.return_value = mock_page
+
+        mock_browser = MagicMock()
+        mock_browser.new_context.return_value = mock_context
+
+        mock_pw = MagicMock()
+        mock_pw.__enter__ = MagicMock(return_value=mock_pw)
+        mock_pw.__exit__ = MagicMock(return_value=False)
+        mock_pw.chromium.launch.return_value = mock_browser
+
+        return mock_pw
+
+    def test_returns_articles_from_same_domain(self):
+        chain = self._chain()
+        source = {"name": "Classmethod Developer Blog", "url": "https://dev.classmethod.jp/"}
+
+        links = [
+            _make_link_mock("https://dev.classmethod.jp/articles/aws-tips/", "AWS Tips記事"),
+            _make_link_mock("https://dev.classmethod.jp/articles/ai-intro/", "AI入門記事"),
+        ]
+        mock_pw = self._make_playwright_mock(links)
+
+        with patch("chains.blog_chain.sync_playwright", return_value=mock_pw):
+            results = chain._fetch_playwright_source(source)
+
+        assert len(results) == 2
+        assert all(isinstance(a, Article) for a in results)
+        assert results[0].title == "AWS Tips記事"
+        assert results[0].url == "https://dev.classmethod.jp/articles/aws-tips/"
+        assert results[0].source == "Classmethod Developer Blog"
+
+    def test_skips_external_domain_links(self):
+        chain = self._chain()
+        source = {"name": "Classmethod Developer Blog", "url": "https://dev.classmethod.jp/"}
+
+        links = [
+            _make_link_mock("https://dev.classmethod.jp/articles/internal/", "内部記事タイトル"),
+            _make_link_mock("https://external.com/article", "外部リンクタイトル"),
+        ]
+        mock_pw = self._make_playwright_mock(links)
+
+        with patch("chains.blog_chain.sync_playwright", return_value=mock_pw):
+            results = chain._fetch_playwright_source(source)
+
+        assert len(results) == 1
+        assert results[0].url.startswith("https://dev.classmethod.jp")
+
+    def test_deduplicates_same_urls(self):
+        chain = self._chain()
+        source = {"name": "Classmethod Developer Blog", "url": "https://dev.classmethod.jp/"}
+
+        links = [
+            _make_link_mock("https://dev.classmethod.jp/articles/same/", "同じ記事"),
+            _make_link_mock("https://dev.classmethod.jp/articles/same/", "同じ記事（重複）"),
+        ]
+        mock_pw = self._make_playwright_mock(links)
+
+        with patch("chains.blog_chain.sync_playwright", return_value=mock_pw):
+            results = chain._fetch_playwright_source(source)
+
+        assert len(results) == 1
+
+    def test_skips_short_link_text(self):
+        chain = self._chain()
+        source = {"name": "Classmethod Developer Blog", "url": "https://dev.classmethod.jp/"}
+
+        links = [
+            _make_link_mock("https://dev.classmethod.jp/articles/long/", "十分な長さのタイトル"),
+            _make_link_mock("https://dev.classmethod.jp/about/", "Hi"),  # text < 5 chars
+        ]
+        mock_pw = self._make_playwright_mock(links)
+
+        with patch("chains.blog_chain.sync_playwright", return_value=mock_pw):
+            results = chain._fetch_playwright_source(source)
+
+        assert len(results) == 1
+        assert results[0].title == "十分な長さのタイトル"
+
+    def test_respects_max_articles(self):
+        chain = self._chain()
+        chain.max_articles = 2
+        source = {"name": "Classmethod Developer Blog", "url": "https://dev.classmethod.jp/"}
+
+        links = [
+            _make_link_mock(
+                f"https://dev.classmethod.jp/articles/post-{i}/", f"記事タイトル {i}番"
+            )
+            for i in range(10)
+        ]
+        mock_pw = self._make_playwright_mock(links)
+
+        with patch("chains.blog_chain.sync_playwright", return_value=mock_pw):
+            results = chain._fetch_playwright_source(source)
+
+        assert len(results) == 2
+
+    def test_returns_empty_on_playwright_error(self):
+        chain = self._chain()
+        source = {"name": "Classmethod Developer Blog", "url": "https://dev.classmethod.jp/"}
+
+        with patch("chains.blog_chain.sync_playwright", side_effect=Exception("browser error")):
+            results = chain._fetch_playwright_source(source)
+
+        assert results == []
+
+    def test_rss_source_with_playwright_type_calls_playwright_method(self):
+        chain = self._chain()
+        source = {
+            "name": "Classmethod Developer Blog",
+            "url": "https://dev.classmethod.jp/",
+            "type": "playwright",
+        }
+
+        with patch.object(chain, "_fetch_playwright_source", return_value=[]) as mock_pw:
+            chain._fetch_rss_source(source)
+
+        mock_pw.assert_called_once_with(source)
