@@ -262,12 +262,21 @@ class TestEvaluateRouting:
 
     def test_routes_to_report_at_retry_limit(self):
         agent = _make_agent()
-        # retry_count reaches max_retry_loops (3)
+        # retry_count exceeds max_retry_loops (3): retry_count=4 means 3 retries done
+        state = _make_state(
+            evaluation={"need_more": True, "tip_count": 1, "reason": "不足"},
+            retry_count=4,
+        )
+        assert agent._evaluate_routing(state) == "report"
+
+    def test_routes_to_collect_at_exact_max_retries(self):
+        agent = _make_agent()
+        # retry_count == max_retry_loops: still allowed (3rd retry)
         state = _make_state(
             evaluation={"need_more": True, "tip_count": 1, "reason": "不足"},
             retry_count=3,
         )
-        assert agent._evaluate_routing(state) == "report"
+        assert agent._evaluate_routing(state) == "collect"
 
     def test_routes_to_report_with_empty_evaluation(self):
         agent = _make_agent()
@@ -373,9 +382,9 @@ class TestGraphInvocation:
 
         # Verify loop terminates and returns a report
         assert "final_report" in result
-        # evaluate should have been called: initial + max_retry_loops times
+        # evaluate should be called: 1 (initial) + max_retry_loops (3 retries) = 4 times
         max_retries = 3  # settings.collector.max_retry_loops
-        assert agent._evaluate_chain.invoke.call_count <= max_retries + 1
+        assert agent._evaluate_chain.invoke.call_count == max_retries + 1
 
     def test_graph_mermaid_diagram_generated(self):
         agent = _make_agent()

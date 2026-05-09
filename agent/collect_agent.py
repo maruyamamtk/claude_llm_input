@@ -200,7 +200,7 @@ class CollectAgent:
         evaluation = state.get("evaluation", {})
         retry_count = state.get("retry_count", 0)
         max_retries = settings.collector.max_retry_loops
-        if evaluation.get("need_more") and retry_count < max_retries:
+        if evaluation.get("need_more") and retry_count <= max_retries:
             return "collect"
         return "report"
 
