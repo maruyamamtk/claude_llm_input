@@ -29,17 +29,13 @@ _SYSTEM_PROMPT = """\
 - 日本語で回答すること
 """
 
-_ANSWER_PROMPT = """\
-以下のObsidianノートのコンテキストを参照して質問に回答してください。
-
-## コンテキスト（最新10ファイルの内容）
-{context}
-
-## 質問
-{question}
-
-上記のシステムプロンプトの形式に従って回答してください。
-"""
+def _build_answer_prompt(context: str, question: str) -> str:
+    return (
+        "以下のObsidianノートのコンテキストを参照して質問に回答してください。\n\n"
+        f"## コンテキスト（最新10ファイルの内容）\n{context}\n\n"
+        f"## 質問\n{question}\n\n"
+        "上記のシステムプロンプトの形式に従って回答してください。"
+    )
 
 
 class QAState(TypedDict):
@@ -97,9 +93,7 @@ class QAAgent:
 
         messages = [
             SystemMessage(content=_SYSTEM_PROMPT),
-            HumanMessage(
-                content=_ANSWER_PROMPT.format(context=context, question=question)
-            ),
+            HumanMessage(content=_build_answer_prompt(context, question)),
         ]
 
         try:
