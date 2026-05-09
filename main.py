@@ -6,6 +6,7 @@ import traceback
 from datetime import date
 
 from agent.collect_agent import CollectAgent
+from service.gmail_sender import GmailSender
 from service.obsidian_writer import ObsidianWriter
 
 
@@ -29,6 +30,9 @@ def main() -> None:
         writer = ObsidianWriter()
         path = writer.write(final_report, run_date)
         logger.info("Obsidianファイル保存完了: %s", path)
+
+        sender = GmailSender()
+        sender.send(final_report, run_date)
 
     except Exception:
         traceback.print_exc()

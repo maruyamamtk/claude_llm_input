@@ -23,9 +23,12 @@ class TestMainSuccess:
         mock_writer_instance = MagicMock()
         mock_writer_instance.write.return_value = tmp_path / "2026-05-09_ai_tips.md"
 
+        mock_sender_instance = MagicMock()
+
         with (
             patch("main.CollectAgent", return_value=mock_agent_instance),
             patch("main.ObsidianWriter", return_value=mock_writer_instance),
+            patch("main.GmailSender", return_value=mock_sender_instance),
         ):
             _run_main()
 
@@ -43,13 +46,36 @@ class TestMainSuccess:
         mock_writer_instance = MagicMock()
         mock_writer_instance.write.return_value = tmp_path / "2026-05-09_ai_tips.md"
 
+        mock_sender_instance = MagicMock()
+
         with (
             patch("main.CollectAgent", return_value=mock_agent_instance),
             patch("main.ObsidianWriter", return_value=mock_writer_instance),
+            patch("main.GmailSender", return_value=mock_sender_instance),
         ):
             _run_main()
 
         mock_writer_instance.write.assert_called_once_with(report_text, date.today())
+
+    def test_sends_report_via_gmail(self, tmp_path):
+        report_text = "# レポート本文"
+        mock_result = {"final_report": report_text}
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.graph.invoke.return_value = mock_result
+
+        mock_writer_instance = MagicMock()
+        mock_writer_instance.write.return_value = tmp_path / "2026-05-09_ai_tips.md"
+
+        mock_sender_instance = MagicMock()
+
+        with (
+            patch("main.CollectAgent", return_value=mock_agent_instance),
+            patch("main.ObsidianWriter", return_value=mock_writer_instance),
+            patch("main.GmailSender", return_value=mock_sender_instance),
+        ):
+            _run_main()
+
+        mock_sender_instance.send.assert_called_once_with(report_text, date.today())
 
     def test_logs_completion_to_stdout(self, tmp_path, caplog):
         mock_result = {"final_report": "report"}
@@ -59,10 +85,13 @@ class TestMainSuccess:
         mock_writer_instance = MagicMock()
         mock_writer_instance.write.return_value = tmp_path / "2026-05-09_ai_tips.md"
 
+        mock_sender_instance = MagicMock()
+
         with (
             caplog.at_level(logging.INFO),
             patch("main.CollectAgent", return_value=mock_agent_instance),
             patch("main.ObsidianWriter", return_value=mock_writer_instance),
+            patch("main.GmailSender", return_value=mock_sender_instance),
         ):
             _run_main()
 
