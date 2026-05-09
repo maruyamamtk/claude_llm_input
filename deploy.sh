@@ -181,16 +181,33 @@ cmd_run() {
   echo "実行完了（Cloud Logging でログを確認してください）"
 }
 
+cmd_sync_local() {
+  echo "=== macOS 同期エージェント セットアップ ==="
+  REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+  PLIST_SRC="${REPO_DIR}/scripts/com.ai-tips.sync.plist"
+  PLIST_DEST="${HOME}/Library/LaunchAgents/com.ai-tips.sync.plist"
+
+  sed "s|REPO_DIR|${REPO_DIR}|g; s|HOME_DIR|${HOME}|g" "${PLIST_SRC}" > "${PLIST_DEST}"
+
+  launchctl unload "${PLIST_DEST}" 2>/dev/null || true
+  launchctl load "${PLIST_DEST}"
+
+  echo "  同期エージェント登録完了（毎時実行）"
+  echo "  スクリプト: ${REPO_DIR}/scripts/sync_ai_tips.sh"
+  echo "  ログ: ${HOME}/Library/Logs/ai-tips-sync.log"
+}
+
 # ---- エントリポイント ----------------------------------------------------
 
 case "${1:-}" in
-  setup)    cmd_setup    ;;
-  secrets)  cmd_secrets  ;;
-  deploy)   cmd_deploy   ;;
-  schedule) cmd_schedule ;;
-  run)      cmd_run      ;;
+  setup)      cmd_setup      ;;
+  secrets)    cmd_secrets    ;;
+  deploy)     cmd_deploy     ;;
+  schedule)   cmd_schedule   ;;
+  run)        cmd_run        ;;
+  sync-local) cmd_sync_local ;;
   *)
-    echo "使い方: $0 {setup|secrets|deploy|schedule|run}"
+    echo "使い方: $0 {setup|secrets|deploy|schedule|run|sync-local}"
     exit 1
     ;;
 esac

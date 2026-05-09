@@ -17,9 +17,10 @@
 3. [Gmail OAuth2 初回認証](#gmail-oauth2-初回認証)
 4. [ローカルでの動作確認](#ローカルでの動作確認)
 5. [本番GCPデプロイ（初回）](#本番gcpデプロイ初回)
-6. [運用手順](#運用手順)
-7. [情報ソースのカスタマイズ](#情報ソースのカスタマイズ)
-8. [トラブルシューティング](#トラブルシューティング)（[403 access_denied](#gmail-oauth2-認証時に-403-access_denied-が出る)）
+6. [macOS 同期エージェントのセットアップ](#macos-同期エージェントのセットアップ)
+7. [運用手順](#運用手順)
+8. [情報ソースのカスタマイズ](#情報ソースのカスタマイズ)
+9. [トラブルシューティング](#トラブルシューティング)（[403 access_denied](#gmail-oauth2-認証時に-403-access_denied-が出る)）
 
 ---
 
@@ -299,6 +300,28 @@ gcloud logging read \
   --limit=50 \
   --format="table(timestamp, severity, textPayload)"
 ```
+
+---
+
+## macOS 同期エージェントのセットアップ
+
+GCPのCloud Run JobがGCSに保存したノートを、ローカルのObsidianへ自動同期します。PCが起動中に毎時1回実行されます。
+
+```bash
+./deploy.sh sync-local
+```
+
+実行されること:
+- `scripts/com.ai-tips.sync.plist` を元にLaunchAgentを `~/Library/LaunchAgents/` に配置
+- LaunchAgentを登録（以降、PC起動中は毎時自動実行）
+
+| 項目 | 内容 |
+|------|------|
+| 同期方向 | GCS → `~/Desktop/obsidian_note/08_AINews/` |
+| 実行頻度 | 毎時（PC起動中のみ） |
+| ログ | `~/Library/Logs/ai-tips-sync.log` |
+
+> コードを変更した場合は `./deploy.sh sync-local` を再実行してください。
 
 ---
 
