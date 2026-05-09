@@ -23,6 +23,14 @@ class Settings(BaseSettings):
         default="credentials.json",
         description="Gmail API OAuth2 認証情報ファイルパス",
     )
+    gmail_token_path: str = Field(
+        default="token.json",
+        description="Gmail API OAuth2 トークンキャッシュファイルパス",
+    )
+    gmail_sender_address: str = Field(
+        default="marumaru5922@gmail.com",
+        description="Gmail送信元・送信先アドレス",
+    )
     obsidian_notes_dir: str = Field(
         default="~/Desktop/obsidian_note/08_AINews",
         description="Obsidianノートの保存先ディレクトリ",
