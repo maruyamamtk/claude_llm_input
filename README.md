@@ -13,7 +13,7 @@
 ## 目次
 
 1. [前提条件](#前提条件)
-2. [ローカル開発環境のセットアップ](#ローカル開発環境のセットアップ)
+2. [ローカル開発環境のセットアップ](#ローカル開発環境のセットアップ)（[GitHub Token取得](#4-github-personal-access-token-の取得任意)）
 3. [Gmail OAuth2 初回認証](#gmail-oauth2-初回認証)
 4. [ローカルでの動作確認](#ローカルでの動作確認)
 5. [本番GCPデプロイ（初回）](#本番gcpデプロイ初回)
@@ -78,6 +78,25 @@ OBSIDIAN_NOTES_DIR=~/Desktop/obsidian_note/08_AINews
 ```
 
 > `.env` はGitで管理されません。APIキーをコミットしないでください。
+
+### 4. GitHub Personal Access Token の取得（任意）
+
+`GITHUB_TOKEN` を設定しない場合、GitHub APIへのリクエストが未認証扱いとなり**レート制限（60回/時）**に引っかかる場合があります。設定することで6,000回/時まで緩和されます。
+
+1. GitHubにログイン → 右上のアバターアイコン → **Settings**
+2. 左メニュー最下部 → **Developer settings**
+3. **Personal access tokens** → **Tokens (classic)**
+4. **Generate new token** → **Generate new token (classic)**
+5. 以下の通り設定:
+   - **Note**: `ai-tips-collector`（任意）
+   - **Expiration**: `90 days` 推奨
+   - **Scopes**: `public_repo` にチェック（公開リポジトリのリリース取得のみ必要）
+6. **Generate token** をクリック → `ghp_...` で始まるトークンをコピー
+7. `.env` に追記:
+
+```bash
+echo "GITHUB_TOKEN=ghp_ここにトークンを貼り付け" >> .env
+```
 
 ---
 
