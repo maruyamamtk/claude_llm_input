@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Secrets — never bake into image; mount via Secret Manager at runtime
+.env
+credentials.json
+token.json
+
+# Dev / test artifacts
+.pytest_cache/
+tests/
+tasks/
+HANGOVER.md
+
+# OS
+.DS_Store
+.git/
