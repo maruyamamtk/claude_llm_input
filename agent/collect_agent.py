@@ -16,6 +16,7 @@ from chains.filter_chain import FilterChain
 from chains.github_chain import GithubChain
 from chains.reporter_chain import ReporterChain
 from chains.summarizer_chain import SummarizerChain
+from chains.twitter_chain import TwitterChain
 from models.article import Article
 from settings import settings
 
@@ -77,6 +78,7 @@ class CollectAgent:
     def __init__(self) -> None:
         self._blog_chain = BlogChain()
         self._github_chain = GithubChain()
+        self._twitter_chain = TwitterChain()
         self._filter_chain = FilterChain()
         self._summarizer_chain = SummarizerChain()
         self._reporter_chain = ReporterChain()
@@ -110,6 +112,7 @@ class CollectAgent:
         builder.add_node("dispatch_collect", self._dispatch_collect_node)
         builder.add_node("collect_blog", self._collect_blog_node)
         builder.add_node("collect_github", self._collect_github_node)
+        builder.add_node("collect_twitter", self._collect_twitter_node)
         builder.add_node("filter_and_summarize", self._filter_and_summarize_node)
         builder.add_node("evaluate", self._evaluate_node)
         builder.add_node("generate_report", self._generate_report_node)
@@ -119,10 +122,11 @@ class CollectAgent:
         builder.add_conditional_edges(
             "dispatch_collect",
             self._dispatch_edges,
-            ["collect_blog", "collect_github"],
+            ["collect_blog", "collect_github", "collect_twitter"],
         )
         builder.add_edge("collect_blog", "filter_and_summarize")
         builder.add_edge("collect_github", "filter_and_summarize")
+        builder.add_edge("collect_twitter", "filter_and_summarize")
         builder.add_edge("filter_and_summarize", "evaluate")
         builder.add_conditional_edges(
             "evaluate",
@@ -143,6 +147,7 @@ class CollectAgent:
         return [
             Send("collect_blog", state),
             Send("collect_github", state),
+            Send("collect_twitter", state),
         ]
 
     def _collect_blog_node(self, state: CollectAgentState) -> dict:
@@ -151,6 +156,10 @@ class CollectAgent:
 
     def _collect_github_node(self, state: CollectAgentState) -> dict:
         articles = self._github_chain.run()
+        return {"raw_articles": articles}
+
+    def _collect_twitter_node(self, state: CollectAgentState) -> dict:
+        articles = self._twitter_chain.run()
         return {"raw_articles": articles}
 
     def _filter_and_summarize_node(self, state: CollectAgentState) -> dict:
