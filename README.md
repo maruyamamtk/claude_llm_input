@@ -85,15 +85,58 @@ OBSIDIAN_NOTES_DIR=~/Desktop/obsidian_note/08_AINews
 
 Gmail送信にはOAuth2認証が必要です。**初回のみ**、ブラウザが使えるローカル環境で実行してください。
 
-### 1. GCPコンソールで認証情報を作成
+### Step 1：Gmail API を有効化する
 
-1. [GCPコンソール](https://console.cloud.google.com/) → APIs & Services → Credentials
-2. 「OAuth 2.0 クライアント ID」を作成（アプリケーション種類: **デスクトップアプリ**）
-3. `credentials.json` をダウンロードしてプロジェクトルートに配置
+（すでに有効化済みの場合はスキップ）
 
-### 2. OAuth2フローを実行してトークンを生成
+1. [GCPコンソール](https://console.cloud.google.com/) を開く
+2. 画面上部の**プロジェクト選択ドロップダウン**（「Google Cloud」ロゴの右隣）をクリックし、`keiba-prediction-1768734113` を選択
+3. 左上のハンバーガーメニュー（三本線）→ **「APIs & Services」** → **「Library」** をクリック
+4. 検索ボックスに `Gmail API` と入力してEnter
+5. 「Gmail API」が表示されたらクリック → **「有効にする」** をクリック
+
+### Step 2：OAuth 同意画面を構成する
+
+OAuth 2.0 クライアントIDを作成する前に、同意画面の設定が必要です。
+
+1. 左メニューの **「APIs & Services」** → **「OAuth consent screen」** をクリック
+2. **「User Type」** で **「外部（External）」** を選択 → **「作成」**
+3. **App information** フォームを入力:
+   - **App name**: `AI Tips Collector`（任意）
+   - **User support email**: 自分のGmailアドレスを選択
+   - **Developer contact information**: 自分のGmailアドレスを入力
+4. **「保存して次へ」** をクリック
+5. **Scopes** 画面：何も追加せず **「保存して次へ」**
+6. **Test users** 画面：
+   - **「+ ADD USERS」** をクリック
+   - `marumaru5922@gmail.com` を入力して **「追加」**
+   - **「保存して次へ」**
+7. **Summary** 画面：内容を確認して **「ダッシュボードに戻る」**
+
+### Step 3：OAuth 2.0 クライアントID を作成する
+
+1. 左メニューの **「APIs & Services」** → **「Credentials」** をクリック
+2. 画面上部の **「＋ CREATE CREDENTIALS」** をクリック
+3. ドロップダウンから **「OAuth client ID」** を選択
+4. **「Application type」** のドロップダウンで **「Desktop app」** を選択
+5. **「Name」** に任意の名前を入力（例: `ai-tips-collector-local`）
+6. **「作成」** をクリック
+
+### Step 4：credentials.json をダウンロードする
+
+1. 「OAuth client created」ポップアップが表示される → **「DOWNLOAD JSON」** をクリック
+   - ポップアップを閉じてしまった場合は、Credentials 一覧の該当クライアントIDの右端にある**ダウンロードアイコン（⬇）** をクリック
+2. ダウンロードされたファイルをリネームしてプロジェクトルートに配置:
 
 ```bash
+mv ~/Downloads/client_secret_*.json /Users/michika_maruyama/Desktop/claude_llm_input/credentials.json
+```
+
+### Step 5：token.json を生成する
+
+```bash
+cd /Users/michika_maruyama/Desktop/claude_llm_input
+
 ANTHROPIC_API_KEY=dummy uv run python -c "
 from service.gmail_sender import GmailSender
 GmailSender()._get_credentials()
@@ -101,9 +144,22 @@ print('token.json を生成しました')
 "
 ```
 
-ブラウザが開くので、対象のGoogleアカウントでログインして権限を許可してください。`token.json` が生成されれば完了です。
+1. ブラウザが自動で開く
+2. Googleアカウントの選択画面 → `marumaru5922@gmail.com` を選択
+3. 「このアプリはGoogleによって確認されていません」という警告が出た場合：
+   - **「詳細」** をクリック → **「AI Tips Collector（安全ではないページ）に移動」** をクリック
+4. Gmail の権限許可画面 → **「許可」** をクリック
+5. ターミナルに `token.json を生成しました` と表示されれば完了
 
-> `token.json` もGitで管理されません。Secret Managerに登録して本番環境で使用します（[本番GCPデプロイ](#本番gcpデプロイ初回) 参照）。
+### 完了確認
+
+```bash
+ls -la credentials.json token.json
+```
+
+両ファイルが存在すればローカルでの Gmail 送信が可能な状態です。
+
+> `credentials.json` / `token.json` はGitで管理されません。`token.json` は `./deploy.sh secrets` で Secret Manager に登録して本番環境で使用します（[本番GCPデプロイ](#本番gcpデプロイ初回) 参照）。
 
 ---
 
