@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
+import os
 from datetime import date
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -31,7 +33,27 @@ class GmailSender:
         self._token_path = Path(token_path or settings.gmail_token_path)
         self._address = sender_address or settings.gmail_sender_address
 
+    def _load_credentials_from_secret_manager(self, project_id: str) -> Credentials:
+        """Secret Manager の gmail-token シークレットから認証情報を取得する。"""
+        from google.cloud import secretmanager  # type: ignore[import-untyped]
+
+        client = secretmanager.SecretManagerServiceClient()
+        name = f"projects/{project_id}/secrets/gmail-token/versions/latest"
+        response = client.access_secret_version(request={"name": name})
+        token_data = json.loads(response.payload.data.decode("utf-8"))
+        creds = Credentials.from_authorized_user_info(token_data, _SCOPES)
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        return creds
+
     def _get_credentials(self) -> Credentials:
+        # Cloud Run環境ではSecret ManagerからGmailトークンを読み込む
+        project_id = os.environ.get("GCP_PROJECT_ID")
+        if project_id:
+            logger.info("Secret Manager から Gmail トークンを読み込みます (project=%s)", project_id)
+            return self._load_credentials_from_secret_manager(project_id)
+
+        # ローカル環境ではファイルから読み込む
         creds: Credentials | None = None
 
         if self._token_path.exists():
