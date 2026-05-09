@@ -128,6 +128,7 @@ cmd_deploy() {
     --image="${IMAGE_URI}" \
     --region="${REGION}" \
     --project="${PROJECT_ID}" \
+    --task-timeout=1800 \
     --set-env-vars="OBSIDIAN_NOTES_DIR=/mnt/gcs/08_AINews,GCP_PROJECT_ID=${PROJECT_ID}" \
     --set-secrets="ANTHROPIC_API_KEY=anthropic-api-key:latest,GITHUB_TOKEN=github-token:latest"
   echo "デプロイ完了"
