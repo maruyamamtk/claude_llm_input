@@ -31,12 +31,15 @@ def main() -> None:
         path = writer.write(final_report, run_date)
         logger.info("Obsidianファイル保存完了: %s", path)
 
-        sender = GmailSender()
-        sender.send(final_report, run_date)
-
     except Exception:
         traceback.print_exc()
         sys.exit(1)
+
+    try:
+        sender = GmailSender()
+        sender.send(final_report, run_date)
+    except Exception:
+        logger.warning("Gmail送信に失敗しました（Obsidian保存は完了済み）", exc_info=True)
 
     logger.info("=== AI Tips Collector 完了 ===")
 

@@ -107,7 +107,7 @@ class TestGmailSenderGetCredentials:
         mock_creds.valid = False
         mock_creds.expired = True
         mock_creds.refresh_token = "refresh_token_value"
-        mock_creds.to_json.return_value = "{}"
+        mock_creds.to_json.return_value = '{"refreshed": true}'
 
         with patch("service.gmail_sender.Credentials.from_authorized_user_file", return_value=mock_creds):
             sender = GmailSender(
@@ -119,6 +119,9 @@ class TestGmailSenderGetCredentials:
 
         mock_creds.refresh.assert_called_once()
         assert result is mock_creds
+        # リフレッシュ後のトークンがファイルに保存されていることを検証
+        assert token_file.read_text(encoding="utf-8") == '{"refreshed": true}'
+        assert (token_file.stat().st_mode & 0o777) == 0o600
 
 
 class TestGmailSenderSend:

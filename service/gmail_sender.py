@@ -43,11 +43,14 @@ class GmailSender:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            # valid=False かつ expired=False（トークン破損など）も含め再認証する
+            # 注意: run_local_server はブラウザが必要なため、初回はGUI環境での実行が必要
             if not self._credentials_path.exists():
                 raise FileNotFoundError(
                     f"Gmail認証情報ファイルが見つかりません: {self._credentials_path}\n"
                     "GCPコンソールでOAuth2クライアント（デスクトップアプリ）を作成し、"
-                    "credentials.jsonをダウンロードしてください。"
+                    "credentials.jsonをダウンロードしてください。\n"
+                    "初回認証はブラウザが利用できるGUI環境で実行してください。"
                 )
             flow = InstalledAppFlow.from_client_secrets_file(
                 str(self._credentials_path), _SCOPES
@@ -55,6 +58,7 @@ class GmailSender:
             creds = flow.run_local_server(port=0)
 
         self._token_path.write_text(creds.to_json(), encoding="utf-8")
+        self._token_path.chmod(0o600)
         logger.info("Gmail認証トークンを保存しました: %s", self._token_path)
         return creds
 

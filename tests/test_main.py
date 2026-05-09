@@ -100,6 +100,30 @@ class TestMainSuccess:
         assert "Obsidianファイル保存完了" in caplog.text
 
 
+    def test_gmail_failure_does_not_exit_and_logs_warning(self, tmp_path, caplog):
+        report_text = "# レポート本文"
+        mock_result = {"final_report": report_text}
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.graph.invoke.return_value = mock_result
+
+        mock_writer_instance = MagicMock()
+        mock_writer_instance.write.return_value = tmp_path / "2026-05-09_ai_tips.md"
+
+        mock_sender_instance = MagicMock()
+        mock_sender_instance.send.side_effect = Exception("Gmail API error")
+
+        with (
+            caplog.at_level(logging.WARNING),
+            patch("main.CollectAgent", return_value=mock_agent_instance),
+            patch("main.ObsidianWriter", return_value=mock_writer_instance),
+            patch("main.GmailSender", return_value=mock_sender_instance),
+        ):
+            _run_main()  # SystemExit が発生しないこと
+
+        assert "Gmail送信に失敗しました" in caplog.text
+        mock_writer_instance.write.assert_called_once()  # Obsidian保存は完了済み
+
+
 class TestMainFailure:
     def test_exits_with_code_1_on_agent_error(self):
         mock_agent_instance = MagicMock()
