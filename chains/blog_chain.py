@@ -10,6 +10,7 @@ import logging
 import feedparser
 import httpx
 import yaml
+from playwright.sync_api import sync_playwright
 
 from models.article import Article
 from settings import settings
@@ -99,6 +100,9 @@ class BlogChain:
     # ------------------------------------------------------------------
 
     def _fetch_rss_source(self, source: dict) -> list[Article]:
+        if source.get("type") == "playwright":
+            return self._fetch_playwright_source(source)
+
         url: str = source["url"]
         name: str = source["name"]
 
@@ -139,6 +143,61 @@ class BlogChain:
         except Exception:
             pass
         return None
+
+    # ------------------------------------------------------------------
+    # Playwright scraping（JavaScript ヘビーなサイト向け）
+    # ------------------------------------------------------------------
+
+    def _fetch_playwright_source(self, source: dict) -> list[Article]:
+        url: str = source["url"]
+        name: str = source["name"]
+        base_netloc = urlparse(url).netloc
+
+        try:
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch(headless=True)
+                context = browser.new_context(
+                    user_agent=_HEADERS["User-Agent"],
+                    viewport={"width": 1280, "height": 800},
+                )
+                page = context.new_page()
+                try:
+                    page.goto(url, timeout=30_000)
+                    page.wait_for_load_state("networkidle", timeout=15_000)
+
+                    links = page.query_selector_all("a[href]")
+                    seen: set[str] = set()
+                    articles: list[Article] = []
+
+                    for link in links:
+                        if len(articles) >= self.max_articles:
+                            break
+                        href = link.get_attribute("href") or ""
+                        if not href.startswith("http"):
+                            href = urljoin(url, href) if href else ""
+                        if not href or urlparse(href).netloc != base_netloc:
+                            continue
+                        text = (link.inner_text() or "").strip()
+                        if href in seen or len(text) < 5:
+                            continue
+                        seen.add(href)
+                        articles.append(
+                            Article(
+                                title=text,
+                                url=href,
+                                source=name,
+                                published_at=None,
+                                raw_content="",
+                                category=self._category(name),
+                            )
+                        )
+
+                    return articles
+                finally:
+                    browser.close()
+        except Exception as exc:
+            logger.warning("[BlogChain] Playwright fetch failed for %s: %s", name, exc)
+            return []
 
     # ------------------------------------------------------------------
     # HTML scraping

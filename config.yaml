@@ -30,7 +30,7 @@ rss_sources:
     type: html
   - name: Classmethod Developer Blog
     url: https://dev.classmethod.jp/
-    type: html
+    type: playwright
 
 github_repos:
   - repo: anthropics/anthropic-sdk-python
