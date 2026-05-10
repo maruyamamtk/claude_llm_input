@@ -15,7 +15,7 @@ IMAGE_NAME="ai-tips-collector"
 JOB_NAME="ai-tips-collector"
 GCS_BUCKET="ai-tips-obsidian-${PROJECT_ID}"
 SCHEDULER_JOB_NAME="ai-tips-collector-daily"
-SCHEDULER_SCHEDULE="30 23 * * *"  # UTC = 08:30 JST
+SCHEDULER_SCHEDULE="30 8 * * *"   # 08:30 JST (Asia/Tokyo タイムゾーン指定)
 SERVICE_ACCOUNT="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')-compute@developer.gserviceaccount.com"
 
 IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/${IMAGE_NAME}:latest"
@@ -166,7 +166,7 @@ cmd_schedule() {
   echo ""
   echo "=== Cloud Scheduler 設定完了 ==="
   echo "  ジョブ名: ${SCHEDULER_JOB_NAME}"
-  echo "  スケジュール: ${SCHEDULER_SCHEDULE} UTC (毎日 08:30 JST)"
+  echo "  スケジュール: ${SCHEDULER_SCHEDULE} JST (毎日 08:30 JST / 23:30 UTC)"
   echo "  タイムゾーン: Asia/Tokyo"
   echo ""
   echo "  手動テスト実行: gcloud scheduler jobs run ${SCHEDULER_JOB_NAME} --location=${REGION} --project=${PROJECT_ID}"
