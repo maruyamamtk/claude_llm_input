@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
@@ -13,6 +14,13 @@ from settings import settings
 logger = logging.getLogger(__name__)
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "filter.prompt"
+
+_HUMAN_TEMPLATE = (
+    "タイトル: {title}\n"
+    "ソース: {source}\n"
+    "内容: {content}\n\n"
+    "上記の基準で判定してください。"
+)
 
 
 class _FilterResult(BaseModel):
@@ -29,8 +37,11 @@ class FilterChain:
             max_tokens=256,
         )
         structured_llm = llm.with_structured_output(_FilterResult)
+        system_message = SystemMessage(content=[
+            {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
+        ])
         self._chain = ChatPromptTemplate.from_messages(
-            [("system", system_prompt), ("human", "上記の基準で判定してください。")]
+            [system_message, ("human", _HUMAN_TEMPLATE)]
         ) | structured_llm
 
     def run(self, articles: list[Article]) -> list[Article]:
