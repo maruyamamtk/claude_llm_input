@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 
 from models.article import Article
@@ -12,6 +13,13 @@ from settings import settings
 logger = logging.getLogger(__name__)
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "summarize.prompt"
+
+_HUMAN_TEMPLATE = (
+    "タイトル: {title}\n"
+    "ソース: {source}\n"
+    "内容: {content}\n\n"
+    "上記の記事を要約してください。"
+)
 
 
 class SummarizerChain:
@@ -22,8 +30,11 @@ class SummarizerChain:
             api_key=settings.anthropic_api_key,
             max_tokens=600,
         )
+        system_message = SystemMessage(content=[
+            {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
+        ])
         self._chain = ChatPromptTemplate.from_messages(
-            [("system", system_prompt), ("human", "上記の記事を要約してください。")]
+            [system_message, ("human", _HUMAN_TEMPLATE)]
         ) | llm
 
     def run(self, article: Article) -> Article:

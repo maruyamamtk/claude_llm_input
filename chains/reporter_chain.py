@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 
 from models.article import Article
@@ -38,9 +39,12 @@ class ReporterChain:
             api_key=settings.anthropic_api_key,
             max_tokens=4096,
         )
+        system_message = SystemMessage(content=[
+            {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
+        ])
         self._chain = ChatPromptTemplate.from_messages(
             [
-                ("system", system_prompt),
+                system_message,
                 ("human", "対象日: {report_date}\n\n収集記事:\n{articles}"),
             ]
         ) | llm
