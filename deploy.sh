@@ -62,19 +62,19 @@ cmd_setup() {
 cmd_secrets() {
   echo "=== Secret Manager: シークレット登録 ==="
 
-  # anthropic-api-key
-  if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    echo "エラー: 環境変数 ANTHROPIC_API_KEY が設定されていません"
+  # google-api-key
+  if [ -z "${GOOGLE_API_KEY:-}" ]; then
+    echo "エラー: 環境変数 GOOGLE_API_KEY が設定されていません"
     exit 1
   fi
-  echo -n "${ANTHROPIC_API_KEY}" | gcloud secrets create anthropic-api-key \
+  echo -n "${GOOGLE_API_KEY}" | gcloud secrets create google-api-key \
     --data-file=- \
     --project="${PROJECT_ID}" \
     --replication-policy=automatic 2>/dev/null || \
-  echo -n "${ANTHROPIC_API_KEY}" | gcloud secrets versions add anthropic-api-key \
+  echo -n "${GOOGLE_API_KEY}" | gcloud secrets versions add google-api-key \
     --data-file=- \
     --project="${PROJECT_ID}"
-  echo "  anthropic-api-key: 登録完了"
+  echo "  google-api-key: 登録完了"
 
   # github-token（空でも登録可、レート制限緩和用）
   _github_token="${GITHUB_TOKEN:-}"
@@ -130,7 +130,7 @@ cmd_deploy() {
     --project="${PROJECT_ID}" \
     --task-timeout=1800 \
     --set-env-vars="OBSIDIAN_NOTES_DIR=/mnt/gcs/08_AINews,GCP_PROJECT_ID=${PROJECT_ID}" \
-    --set-secrets="ANTHROPIC_API_KEY=anthropic-api-key:latest,GITHUB_TOKEN=github-token:latest"
+    --set-secrets="GOOGLE_API_KEY=google-api-key:latest,GITHUB_TOKEN=github-token:latest"
   echo "デプロイ完了"
 }
 
