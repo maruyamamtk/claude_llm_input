@@ -3,7 +3,7 @@
 生成AI活用・AIコーディングに関する最新情報を毎朝 **08:30 JST** に自動収集し、Obsidianノートへの保存とメール通知を行うエージェント。
 
 - **収集源**: 公式ブログ / RSS / GitHub Releases / X（Twitter）
-- **要約**: Claude API（claude-sonnet-4-6）で日本語要約
+- **要約**: Google Gemini API（gemini-2.5-flash）で日本語要約
 - **通知**: Gmail API 経由でメール送信
 - **Q&A**: 収集したドキュメントに対してCLIで質問可能
 - **実行基盤**: Cloud Run Jobs + Cloud Scheduler（GCP）
@@ -70,7 +70,7 @@ cp .env.example .env   # .env.example が存在する場合
 **.env ファイルの内容:**
 
 ```dotenv
-ANTHROPIC_API_KEY=sk-ant-...          # Anthropic APIキー（必須）
+GOOGLE_API_KEY=AIza...                # Google AI APIキー（必須）
 GITHUB_TOKEN=ghp_...                  # GitHub PAT（任意、レート制限緩和用）
 GMAIL_CREDENTIALS_PATH=credentials.json
 GMAIL_TOKEN_PATH=token.json
@@ -157,7 +157,7 @@ mv ~/Downloads/client_secret_*.json /Users/michika_maruyama/Desktop/claude_llm_i
 ```bash
 cd /Users/michika_maruyama/Desktop/claude_llm_input
 
-ANTHROPIC_API_KEY=dummy uv run python -c "
+GOOGLE_API_KEY=dummy uv run python -c "
 from service.gmail_sender import GmailSender
 GmailSender()._get_credentials()
 print('token.json を生成しました')
@@ -239,7 +239,7 @@ gcloud config set project keiba-prediction-1768734113
 ### Step 3: Secret Manager にシークレットを登録
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-..."   # Anthropic APIキー
+export GOOGLE_API_KEY="AIza..."         # Google AI APIキー
 export GITHUB_TOKEN="ghp_..."           # GitHub PAT（任意）
 export GMAIL_TOKEN_FILE="token.json"    # ローカルで生成した token.json のパス
 
@@ -250,7 +250,7 @@ export GMAIL_TOKEN_FILE="token.json"    # ローカルで生成した token.json
 
 | シークレット名 | 内容 |
 |--------------|------|
-| `anthropic-api-key` | Anthropic API キー |
+| `google-api-key` | Google AI API キー |
 | `github-token` | GitHub Personal Access Token |
 | `gmail-token` | Gmail OAuth2 `token.json` の内容（JSON文字列） |
 
@@ -264,7 +264,7 @@ export GMAIL_TOKEN_FILE="token.json"    # ローカルで生成した token.json
 
 実行されること:
 - Dockerイメージの再ビルド & プッシュ
-- Cloud Run Job を `--set-secrets` フラグ付きで更新（`ANTHROPIC_API_KEY`, `GITHUB_TOKEN`）
+- Cloud Run Job を `--set-secrets` フラグ付きで更新（`GOOGLE_API_KEY`, `GITHUB_TOKEN`）
 - 環境変数 `GCP_PROJECT_ID` の設定（起動時に `gmail-token` を Secret Manager から取得するために使用）
 
 ### Step 5: Cloud Scheduler を設定
@@ -361,8 +361,8 @@ export GMAIL_TOKEN_FILE="token.json"
 ### シークレットを個別に更新する
 
 ```bash
-# anthropic-api-key を更新
-echo -n "新しいAPIキー" | gcloud secrets versions add anthropic-api-key \
+# google-api-key を更新
+echo -n "新しいAPIキー" | gcloud secrets versions add google-api-key \
   --data-file=- \
   --project=keiba-prediction-1768734113
 
@@ -440,10 +440,10 @@ gcloud logging read \
 
 X（Twitter）はログインを要求する場合があります。収集はベストエフォートで、失敗しても他ソースの収集・メール送信は続行されます。
 
-### ローカルで `ANTHROPIC_API_KEY` エラーが出る
+### ローカルで `GOOGLE_API_KEY` エラーが出る
 
-`.env` ファイルが存在するか、`ANTHROPIC_API_KEY` が設定されているか確認してください。
+`.env` ファイルが存在するか、`GOOGLE_API_KEY` が設定されているか確認してください。
 
 ```bash
-grep ANTHROPIC_API_KEY .env
+grep GOOGLE_API_KEY .env
 ```

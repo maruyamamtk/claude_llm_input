@@ -222,8 +222,8 @@ ai-tips-collector/
 | 用途 | 技術 | chapter6との対応 |
 |------|------|----------------|
 | エージェントオーケストレーション | **LangGraph** | `StateGraph` ベースのフロー管理 |
-| LLMチェーン | **LangChain + langchain-anthropic** | `ChatAnthropic` + `ChatPromptTemplate` |
-| LLMモデル | `claude-sonnet-4-6`（要約・評価・レポート） | chapter6の `reporter_llm` パターン |
+| LLMチェーン | **LangChain + langchain-google-genai** | `ChatGoogleGenerativeAI` + `ChatPromptTemplate` |
+| LLMモデル | `gemini-2.5-flash`（要約・評価・レポート） | chapter6の `reporter_llm` パターン |
 | 設定管理 | **pydantic-settings** + `.env` | chapter6の `settings.py` をそのまま踏襲 |
 | パッケージ管理 | **uv** + `pyproject.toml` | chapter6と同じ |
 | RSS取得 | `feedparser` | chapter6 deps にすでに存在 |
