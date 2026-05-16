@@ -5,7 +5,7 @@ import operator
 from datetime import date
 from typing import Annotated, TypedDict
 
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
@@ -86,9 +86,10 @@ class CollectAgent:
         self.graph = self._build_graph()
 
     def _build_evaluate_chain(self):
-        llm = ChatAnthropic(
-            model="claude-sonnet-4-6",
-            api_key=settings.anthropic_api_key,
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=settings.google_api_key,
+            thinking_budget=0,
             max_tokens=512,
         )
         structured_llm = llm.with_structured_output(_EvaluationResult)

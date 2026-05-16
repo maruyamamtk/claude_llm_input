@@ -3,8 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from models.article import Article
@@ -14,27 +13,21 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "summarize.prompt"
 
-_HUMAN_TEMPLATE = (
-    "タイトル: {title}\n"
-    "ソース: {source}\n"
-    "内容: {content}\n\n"
-    "上記の記事を要約してください。"
-)
-
 
 class SummarizerChain:
     def __init__(self) -> None:
         system_prompt = _PROMPT_PATH.read_text(encoding="utf-8")
-        llm = ChatAnthropic(
-            model="claude-sonnet-4-6",
-            api_key=settings.anthropic_api_key,
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=settings.google_api_key,
+            thinking_budget=0,
             max_tokens=600,
         )
-        system_message = SystemMessage(content=[
-            {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
-        ])
         self._chain = ChatPromptTemplate.from_messages(
-            [system_message, ("human", _HUMAN_TEMPLATE)]
+            [
+                ("system", system_prompt),
+                ("human", "タイトル: {title}\nソース: {source}\n内容: {content}\n\n上記の記事を要約してください。"),
+            ]
         ) | llm
 
     def run(self, article: Article) -> Article:

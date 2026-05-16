@@ -28,7 +28,7 @@ def _make_article(
 
 
 def _make_chain() -> ReporterChain:
-    with patch("chains.reporter_chain.ChatAnthropic"), patch(
+    with patch("chains.reporter_chain.ChatGoogleGenerativeAI"), patch(
         "chains.reporter_chain.ChatPromptTemplate"
     ):
         chain = ReporterChain.__new__(ReporterChain)

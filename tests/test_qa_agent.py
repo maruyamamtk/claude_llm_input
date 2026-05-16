@@ -8,7 +8,7 @@ class TestQAAgent:
     def test_load_context_missing_dir(self, tmp_path):
         """存在しないディレクトリの場合はフォールバックメッセージを返す。"""
         with patch("agent.qa_agent.settings") as mock_settings:
-            mock_settings.anthropic_api_key = "dummy"
+            mock_settings.google_api_key = "dummy"
             mock_settings.obsidian_notes_dir = str(tmp_path / "nonexistent")
             from agent.qa_agent import QAAgent
 
@@ -25,7 +25,7 @@ class TestQAAgent:
             )
 
         with patch("agent.qa_agent.settings") as mock_settings:
-            mock_settings.anthropic_api_key = "dummy"
+            mock_settings.google_api_key = "dummy"
             mock_settings.obsidian_notes_dir = str(tmp_path)
             from agent.qa_agent import QAAgent
 
@@ -39,7 +39,7 @@ class TestQAAgent:
     def test_run_returns_formatted_answer(self):
         """run()がMarkdown形式の回答文字列を返す。"""
         with patch("agent.qa_agent.settings") as mock_settings:
-            mock_settings.anthropic_api_key = "dummy"
+            mock_settings.google_api_key = "dummy"
             mock_settings.obsidian_notes_dir = "/tmp/nonexistent"
 
             from agent.qa_agent import QAAgent

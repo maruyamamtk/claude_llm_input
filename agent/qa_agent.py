@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import TypedDict
 
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 
@@ -46,9 +46,10 @@ class QAState(TypedDict):
 
 class QAAgent:
     def __init__(self) -> None:
-        self._llm = ChatAnthropic(
-            model="claude-sonnet-4-6",
-            api_key=settings.anthropic_api_key,
+        self._llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=settings.google_api_key,
+            thinking_budget=0,
             max_tokens=1024,
         )
         self._notes_dir = Path(settings.obsidian_notes_dir).expanduser()

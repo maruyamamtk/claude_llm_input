@@ -59,7 +59,7 @@ def _make_agent() -> CollectAgent:
         patch("agent.collect_agent.FilterChain"),
         patch("agent.collect_agent.SummarizerChain"),
         patch("agent.collect_agent.ReporterChain"),
-        patch("agent.collect_agent.ChatAnthropic"),
+        patch("agent.collect_agent.ChatGoogleGenerativeAI"),
         patch("agent.collect_agent.ChatPromptTemplate"),
     ):
         agent = CollectAgent.__new__(CollectAgent)

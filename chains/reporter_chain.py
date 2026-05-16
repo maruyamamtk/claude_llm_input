@@ -4,8 +4,7 @@ import logging
 from datetime import date
 from pathlib import Path
 
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from models.article import Article
@@ -34,17 +33,15 @@ def _format_articles(articles: list[Article]) -> str:
 class ReporterChain:
     def __init__(self) -> None:
         system_prompt = _PROMPT_PATH.read_text(encoding="utf-8")
-        llm = ChatAnthropic(
-            model="claude-sonnet-4-6",
-            api_key=settings.anthropic_api_key,
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=settings.google_api_key,
+            thinking_budget=0,
             max_tokens=4096,
         )
-        system_message = SystemMessage(content=[
-            {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
-        ])
         self._chain = ChatPromptTemplate.from_messages(
             [
-                system_message,
+                ("system", system_prompt),
                 ("human", "対象日: {report_date}\n\n収集記事:\n{articles}"),
             ]
         ) | llm
