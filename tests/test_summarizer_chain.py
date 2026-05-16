@@ -23,7 +23,7 @@ def _make_article(
 
 
 def _make_chain() -> SummarizerChain:
-    with patch("chains.summarizer_chain.ChatAnthropic"), patch(
+    with patch("chains.summarizer_chain.ChatGoogleGenerativeAI"), patch(
         "chains.summarizer_chain.ChatPromptTemplate"
     ):
         chain = SummarizerChain.__new__(SummarizerChain)
@@ -76,7 +76,7 @@ class TestSummarizerChainRun:
         monkeypatch.setattr(
             "chains.summarizer_chain.settings",
             MagicMock(
-                anthropic_api_key="test",
+                google_api_key="test",
                 collector=MagicMock(summary_max_chars=500),
             ),
         )

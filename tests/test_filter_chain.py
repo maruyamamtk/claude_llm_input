@@ -25,7 +25,7 @@ def _make_article(
 
 
 def _make_chain() -> FilterChain:
-    with patch("chains.filter_chain.ChatAnthropic"), patch(
+    with patch("chains.filter_chain.ChatGoogleGenerativeAI"), patch(
         "chains.filter_chain.ChatPromptTemplate"
     ):
         chain = FilterChain.__new__(FilterChain)

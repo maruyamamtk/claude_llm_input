@@ -26,7 +26,7 @@ def _bootstrap_from_secret_manager() -> None:
 
     client = secretmanager.SecretManagerServiceClient()
     secret_map = {
-        "anthropic-api-key": "ANTHROPIC_API_KEY",
+        "google-api-key": "GOOGLE_API_KEY",
         "github-token": "GITHUB_TOKEN",
     }
     for secret_id, env_var in secret_map.items():
@@ -59,7 +59,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    anthropic_api_key: str = Field(description="Anthropic API キー")
+    google_api_key: str = Field(description="Google AI API キー")
     github_token: str = Field(default="", description="GitHub Personal Access Token（レート制限緩和用）")
     gmail_credentials_path: str = Field(
         default="credentials.json",
